@@ -1,9 +1,18 @@
 /* ============================================
-   Ramraj Chandradevan — Portfolio Website
-   JavaScript: Interactivity & Animations
+   Ramraj Chandradevan — Portfolio Website v2
+   JavaScript: Interactivity, Animations &
+   Google Analytics Event Tracking
    ============================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    // --- Google Analytics Helper ---
+    // Safely send GA4 events (no-op if gtag is not loaded)
+    function trackEvent(eventName, params) {
+        if (typeof gtag === 'function') {
+            gtag('event', eventName, params);
+        }
+    }
 
     // --- Navbar scroll effect ---
     const navbar = document.getElementById('navbar');
@@ -30,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Back to top click
     backToTop.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        trackEvent('click', { event_category: 'navigation', event_label: 'back_to_top' });
     });
 
     // --- Mobile nav toggle ---
@@ -75,6 +85,71 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', updateActiveNav);
     updateActiveNav();
 
+    // --- Track navigation clicks ---
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            trackEvent('click', {
+                event_category: 'navigation',
+                event_label: item.textContent.trim()
+            });
+        });
+    });
+
+    // --- Track hero button clicks (CV download, social links) ---
+    document.querySelectorAll('.hero-links .btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const label = btn.textContent.trim();
+            const href = btn.getAttribute('href') || '';
+            trackEvent('click', {
+                event_category: 'hero_cta',
+                event_label: label,
+                link_url: href
+            });
+        });
+    });
+
+    // --- Track publication link clicks ---
+    document.querySelectorAll('.pub-link').forEach(link => {
+        link.addEventListener('click', () => {
+            const paperTitle = link.closest('.pub-details')?.querySelector('h4')?.textContent || 'unknown';
+            trackEvent('click', {
+                event_category: 'publication',
+                event_label: paperTitle,
+                link_url: link.getAttribute('href') || ''
+            });
+        });
+    });
+
+    // --- Track contact card clicks ---
+    document.querySelectorAll('.contact-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const label = card.querySelector('h4')?.textContent || 'unknown';
+            trackEvent('click', {
+                event_category: 'contact',
+                event_label: label
+            });
+        });
+    });
+
+    // --- Track section visibility (scroll depth) ---
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const sectionId = entry.target.getAttribute('id');
+                trackEvent('section_view', {
+                    event_category: 'engagement',
+                    event_label: sectionId
+                });
+                // Only track first view per section
+                sectionObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.3 });
+
+    sections.forEach(section => {
+        sectionObserver.observe(section);
+    });
+
     // --- Publication filters ---
     const pubFilters = document.querySelectorAll('.pub-filter');
     const pubItems = document.querySelectorAll('.pub-item');
@@ -86,6 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
             filter.classList.add('active');
 
             const filterValue = filter.getAttribute('data-filter');
+
+            // Track filter usage
+            trackEvent('filter', {
+                event_category: 'publications',
+                event_label: filterValue
+            });
 
             pubItems.forEach(item => {
                 if (filterValue === 'all' || item.getAttribute('data-year') === filterValue) {
